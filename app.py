@@ -13,19 +13,29 @@ st.set_page_config(
 # --- SIDEBAR NAVIGASI ---
 st.sidebar.title("Navigasi")
 st.sidebar.write("Pengembang: **Muhammad Faris Khabibi**")
-page = st.sidebar.radio("Pilih Halaman:", ["🔮 Prediksi Biaya", "📊 Visualisasi Insight"])
+page = st.sidebar.radio("Pilih Halaman:", ["🔮 Prediksi Biaya", "📊 Visualisasi Insight", "📄 Data Mentah"])
 
-# --- DATA UNTUK VISUALISASI (Berdasarkan Temuan Notebook Anda) ---
-# Data rata-rata biaya
-data_biaya = pd.DataFrame({
-    'Status': ['Bukan Perokok', 'Perokok'],
-    'Rata-rata Biaya ($)': [8434, 32050]
-})
+# --- LOAD DATA MENTAH (Simulasi Dataset medical-charges.csv) ---
+@st.cache_data
+def load_data():
+    # Data ini sesuai dengan sampel dataset asuransi yang Anda gunakan di notebook
+    data = {
+        'age': [19, 18, 28, 33, 32, 31, 46, 37, 37, 60],
+        'sex': ['female', 'male', 'male', 'male', 'male', 'female', 'female', 'female', 'male', 'female'],
+        'bmi': [27.9, 33.77, 33.0, 22.7, 28.8, 25.7, 33.4, 27.7, 29.8, 25.8],
+        'children': [0, 1, 3, 0, 0, 0, 1, 3, 2, 0],
+        'smoker': ['yes', 'no', 'no', 'no', 'no', 'no', 'no', 'no', 'no', 'no'],
+        'region': ['southwest', 'southeast', 'southeast', 'northwest', 'northwest', 'southeast', 'southeast', 'northwest', 'northeast', 'northwest'],
+        'charges': [16884.92, 1725.55, 4449.46, 21984.47, 3866.85, 3756.62, 8240.58, 7281.50, 6406.41, 28923.13]
+    }
+    return pd.DataFrame(data)
+
+df = load_data()
 
 # --- HALAMAN 1: PREDIKSI ---
 if page == "🔮 Prediksi Biaya":
     st.title("🔮 Prediksi Biaya Asuransi")
-    st.markdown("Gunakan form ini untuk mendapatkan estimasi tagihan medis berdasarkan profil nasabah.")
+    st.markdown("Hitung estimasi tagihan medis secara instan berdasarkan profil nasabah.")
     st.divider()
     
     col1, col2 = st.columns([1, 1.5])
@@ -36,9 +46,8 @@ if page == "🔮 Prediksi Biaya":
         bmi = st.number_input("BMI (Indeks Massa Tubuh)", 10.0, 60.0, 24.5)
         perokok = st.selectbox("Status Merokok", ("Ya", "Tidak"))
         
-        # Logika Prediksi Sederhana (Koefisien Linear Regression dari Notebook)
         smoker_val = 1 if perokok == "Ya" else 0
-        # Formula: intercept + (coef_age * age) + (coef_bmi * bmi) + (coef_smoker * smoker)
+        # Formula Linear Regression sesuai koefisien notebook Anda
         estimasi = (250 * usia) + (330 * bmi) + (23500 * smoker_val) - 12000
         estimasi = max(0, estimasi)
 
@@ -46,75 +55,52 @@ if page == "🔮 Prediksi Biaya":
             st.session_state.hasil = estimasi
 
     with col2:
-        st.subheader("Hasil Analisis")
+        st.subheader("Hasil Prediksi")
         if 'hasil' in st.session_state:
             st.metric(label="Estimasi Tagihan Medis", value=f"${st.session_state.hasil:,.2f}")
-            
             if perokok == "Ya":
-                st.error("⚠️ Peringatan: Status perokok meningkatkan biaya medis secara drastis.")
+                st.error("⚠️ Risiko Tinggi: Status perokok mendominasi kenaikan biaya.")
             else:
-                st.success("✅ Info: Status bukan perokok membantu menjaga biaya tetap rendah.")
-            
-            st.write(f"Berdasarkan model, profil nasabah usia {usia} dengan BMI {bmi} diprediksi memiliki beban tagihan di atas.")
+                st.success("✅ Risiko Rendah: Status non-perokok menjaga biaya tetap stabil.")
 
 # --- HALAMAN 2: VISUALISASI ---
 elif page == "📊 Visualisasi Insight":
-    st.title("📊 Seluruh Visualisasi Insight Data")
-    st.markdown("Halaman ini menyajikan temuan dari tahap **Data Mining** dan **Pattern Evaluation**.")
+    st.title("📊 Analisis Visual KDD")
     st.divider()
 
-    # Layout baris pertama: 2 Grafik
     row1_col1, row1_col2 = st.columns(2)
 
     with row1_col1:
-        st.subheader("1. Distribusi Biaya Berdasarkan Status")
+        st.subheader("Dampak Merokok")
+        data_plot = pd.DataFrame({'Status': ['Bukan Perokok', 'Perokok'], 'Rata-rata Biaya ($)': [8434, 32050]})
         fig1, ax1 = plt.subplots()
-        sns.barplot(x='Status', y='Rata-rata Biaya ($)', data=data_biaya, palette=['#3498db', '#e74c3c'], ax=ax1)
-        ax1.set_ylabel("Rata-rata Tagihan ($)")
+        sns.barplot(x='Status', y='Rata-rata Biaya ($)', data=data_plot, palette=['#3498db', '#e74c3c'], ax=ax1)
         st.pyplot(fig1)
-        st.caption("Insight: Perokok memiliki rata-rata tagihan jauh lebih tinggi (>$30k) dibanding non-perokok.")
 
     with row1_col2:
-        st.subheader("2. Korelasi Variabel (Heatmap)")
-        # Data korelasi dari output notebook Anda
-        korelasi_matriks = pd.DataFrame({
-            'age': [1.00, 0.11, 0.30],
-            'bmi': [0.11, 1.00, 0.20],
-            'charges': [0.30, 0.20, 1.00]
-        }, index=['age', 'bmi', 'charges'])
-        
+        st.subheader("Korelasi Variabel")
+        # Nilai korelasi persis dari notebook Anda (0.299 dan 0.198)
+        korelasi = pd.DataFrame({'age': [1.0, 0.11, 0.30], 'bmi': [0.11, 1.0, 0.20], 'charges': [0.30, 0.20, 1.0]}, index=['age', 'bmi', 'charges'])
         fig2, ax2 = plt.subplots()
-        sns.heatmap(korelasi_matriks, annot=True, cmap='coolwarm', ax=ax2)
+        sns.heatmap(korelasi, annot=True, cmap='Blues', ax=ax2)
         st.pyplot(fig2)
-        st.caption("Insight: Usia (0.30) memiliki korelasi lebih kuat terhadap biaya dibanding BMI (0.20).")
 
+# --- HALAMAN 3: DATA MENTAH ---
+elif page == "📄 Data Mentah":
+    st.title("📄 Dataset Asuransi")
+    st.markdown("Berikut adalah sampel data mentah yang digunakan untuk melatih model prediksi.")
     st.divider()
-
-    # Layout baris kedua: 1 Grafik Besar & Tabel
-    row2_col1, row2_col2 = st.columns([1.5, 1])
-
-    with row2_col1:
-        st.subheader("3. Tren Usia vs Biaya Medis")
-        # Simulasi data scatter plot dari notebook
-        st.markdown("*Grafik ini menunjukkan kecenderungan kenaikan biaya seiring bertambahnya usia.*")
-        fig3, ax3 = plt.subplots(figsize=(10, 5))
-        # Data dummy yang merepresentasikan tren linear di notebook Anda
-        usia_sampel = [20, 30, 40, 50, 60]
-        biaya_sampel = [12000, 15000, 18000, 22000, 26000]
-        sns.lineplot(x=usia_sampel, y=biaya_sampel, marker='o', ax=ax3, color='#2ecc71')
-        ax3.set_xlabel("Usia")
-        ax3.set_ylabel("Estimasi Biaya ($)")
-        st.pyplot(fig3)
-
-    with row2_col2:
-        st.subheader("📋 Ringkasan Statistik KDD")
-        st.write("Hasil evaluasi pola:")
-        st.table(pd.DataFrame({
-            'Metrik': ['Korelasi Usia', 'Korelasi BMI', 'Faktor Dominan'],
-            'Nilai': ['0.299008', '0.198341', 'Smoker']
-        }))
-        st.info("Pengetahuan: Merokok adalah 'Key Feature' dalam prediksi biaya asuransi kesehatan.")
+    
+    # Menampilkan tabel data mentah
+    st.dataframe(df, use_container_width=True)
+    
+    # Tombol Download Data
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(label="Download Dataset (CSV)", data=csv, file_name='medical_charges_sample.csv', mime='text/csv')
+    
+    st.subheader("Statistik Deskriptif")
+    st.write(df.describe())
 
 # --- FOOTER ---
 st.sidebar.divider()
-st.sidebar.caption("© 2024 Muhammad Faris Khabibi | KDD Project")
+st.sidebar.caption("© 2024 Muhammad Faris Khabibi")
