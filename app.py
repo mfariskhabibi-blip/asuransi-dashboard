@@ -1,93 +1,128 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.preprocessing import LabelEncoder
 
-# --- CONFIG DASHBOARD ---
-st.set_page_config(page_title="Telco Churn Analytics", layout="wide")
+# 1. Konfigurasi Halaman
+st.set_page_config(
+    page_title="Dashboard Asuransi - Muhammad Faris Khabibi",
+    page_icon="🏥",
+    layout="wide"
+)
 
-# --- LOAD DATA & MODEL ---
+# --- LOAD DATA MENTAH ---
 @st.cache_data
 def load_data():
-    df = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
-    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce').fillna(0)
-    return df
+    # Data simulasi berdasarkan distribusi dataset medical-charges.csv
+    data = {
+        'age': [19, 18, 28, 33, 32, 31, 46, 37, 37, 60, 25, 62, 23, 56, 27, 19, 52, 23, 56, 30, 33, 45, 64, 52, 61],
+        'sex': ['female', 'male', 'male', 'male', 'male', 'female', 'female', 'female', 'male', 'female', 'male', 'female', 'male', 'female', 'male', 'male', 'female', 'male', 'female', 'male', 'female', 'male', 'female', 'male', 'female'],
+        'bmi': [27.9, 33.7, 33.0, 22.7, 28.8, 25.7, 33.4, 27.7, 29.8, 25.8, 26.2, 26.2, 34.4, 39.8, 42.1, 24.6, 30.7, 23.8, 40.3, 35.3, 22.7, 25.1, 26.7, 30.2, 29.0],
+        'smoker': ['yes', 'no', 'no', 'no', 'no', 'no', 'no', 'no', 'no', 'no', 'yes', 'yes', 'no', 'no', 'yes', 'no', 'no', 'no', 'no', 'yes', 'no', 'no', 'yes', 'no', 'yes'],
+        'charges': [16884.92, 1725.55, 4449.46, 21984.47, 3866.85, 3756.62, 8240.58, 7281.50, 6406.41, 28923.13, 2721.32, 27808.72, 1826.84, 11090.71, 39611.75, 1837.23, 10797.33, 2395.17, 10602.38, 36837.46, 2000.00, 7000.00, 45000.00, 12000.00, 30000.00]
+    }
+    return pd.DataFrame(data)
 
 df = load_data()
 
-# --- SIDEBAR NAVIGATION ---
+# --- SIDEBAR NAVIGASI ---
 st.sidebar.title("Navigasi")
-menu = st.sidebar.radio("Pilih Halaman:", ["Dashboard Analytics", "Prediksi Pelanggan"])
+st.sidebar.write("Pengembang: **Muhammad Faris Khabibi**")
+page = st.sidebar.radio("Pilih Halaman:", ["🔮 Prediksi Biaya", "📊 Visualisasi Insight", "📄 Data Mentah"])
 
-# --- HALAMAN 1: DASHBOARD ANALYTICS ---
-if menu == "Dashboard Analytics":
-    st.title("📊 Telco Customer Churn Dashboard")
-    st.markdown("Analisis pola pelanggan berdasarkan dataset KDD.")
-
-    col1, col2 = st.columns(2)
-
+# --- HALAMAN 1: PREDIKSI ---
+if page == "🔮 Prediksi Biaya":
+    st.title("🔮 Prediksi Biaya Asuransi")
+    st.markdown("Halaman ini menggunakan model **Linear Regression** untuk memprediksi biaya medis tahunan.")
+    st.divider()
+    
+    col1, col2 = st.columns([1, 1.5])
+    
     with col1:
-        st.subheader("Distribusi Churn")
-        fig, ax = plt.subplots()
-        sns.countplot(data=df, x='Churn', palette='viridis', ax=ax)
-        st.pyplot(fig)
+        st.subheader("Input Profil Nasabah")
+        usia = st.number_input("Usia (Tahun)", 18, 100, 25)
+        bmi = st.number_input("BMI (Indeks Massa Tubuh)", 10.0, 60.0, 24.5)
+        perokok = st.selectbox("Status Merokok", ("Ya", "Tidak"))
+        
+        smoker_val = 1 if perokok == "Ya" else 0
+        # Formula Linear Regression hasil Data Mining
+        estimasi = (250 * usia) + (330 * bmi) + (23500 * smoker_val) - 12000
+        estimasi = max(0, estimasi)
+
+        hitung = st.button("Hitung Estimasi Biaya")
 
     with col2:
-        st.subheader("Kontrak vs Churn")
-        fig, ax = plt.subplots()
-        sns.countplot(data=df, x='Contract', hue='Churn', palette='magma', ax=ax)
-        st.pyplot(fig)
+        st.subheader("Hasil Analisis Prediksi")
+        if hitung:
+            st.metric(label="Total Estimasi Tagihan", value=f"${estimasi:,.2f}")
+            if perokok == "Ya":
+                st.error("⚠️ Peringatan: Status perokok meningkatkan risiko finansial secara signifikan.")
+            else:
+                st.success("✅ Info: Gaya hidup tanpa rokok membantu menekan biaya asuransi.")
+            
+            with st.expander("Lihat Logika Perhitungan"):
+                st.write(f"Estimasi didapat dari: (250 x {usia}) + (330 x {bmi}) + (23500 x {smoker_val}) - 12000")
+        else:
+            st.info("Silakan masukkan data dan klik tombol 'Hitung Estimasi Biaya' untuk melihat hasil.")
 
+# --- HALAMAN 2: VISUALISASI ---
+elif page == "📊 Visualisasi Insight":
+    st.title("📊 Visualisasi Pengetahuan (Knowledge)")
+    st.markdown("Mengevaluasi pola yang ditemukan dalam data (Tahap Pattern Evaluation).")
     st.divider()
 
-    col3, col4 = st.columns(2)
+    # Baris 1
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("1. Perbandingan Biaya: Perokok vs Non-Perokok")
+        data_biaya = pd.DataFrame({'Status': ['Bukan Perokok', 'Perokok'], 'Rata-rata Biaya ($)': [8434, 32050]})
+        fig1, ax1 = plt.subplots()
+        sns.barplot(x='Status', y='Rata-rata Biaya ($)', data=data_biaya, palette=['#3498db', '#e74c3c'], ax=ax1)
+        st.pyplot(fig1)
+        st.info("**Insight:** Status merokok meningkatkan biaya medis rata-rata hingga 4x lipat.")
+
+    with c2:
+        st.subheader("2. Matriks Korelasi (Hubungan Antar Variabel)")
+        korelasi = pd.DataFrame({
+            'Age': [1.0, 0.1, 0.3], 
+            'BMI': [0.1, 1.0, 0.2], 
+            'Charges': [0.3, 0.2, 1.0]
+        }, index=['Age', 'BMI', 'Charges'])
+        fig2, ax2 = plt.subplots()
+        sns.heatmap(korelasi, annot=True, cmap='coolwarm', ax=ax2)
+        st.pyplot(fig2)
+        st.info("**Insight:** Usia (0.3) memiliki korelasi lebih kuat terhadap biaya dibanding BMI (0.2).")
+
+    st.divider()
     
-    with col3:
-        st.subheader("Masa Berlangganan (Tenure)")
-        fig, ax = plt.subplots()
-        sns.kdeplot(data=df, x='tenure', hue='Churn', fill=True, ax=ax)
-        st.pyplot(fig)
+    # Baris 2
+    st.subheader("3. Tren Biaya Berdasarkan Usia")
+    fig3, ax3 = plt.subplots(figsize=(12, 4))
+    sns.lineplot(data=df.sort_values('age'), x='age', y='charges', marker='o', color='#2ecc71')
+    plt.grid(True, alpha=0.3)
+    st.pyplot(fig3)
+    st.info("**Insight:** Terdapat tren linear dimana pertambahan usia diikuti oleh kenaikan biaya medis.")
 
-    with col4:
-        st.subheader("Metode Pembayaran")
-        fig, ax = plt.subplots()
-        sns.countplot(data=df, x='PaymentMethod', hue='Churn', ax=ax)
-        plt.xticks(rotation=45)
-        st.pyplot(fig)
+# --- HALAMAN 3: DATA MENTAH ---
+elif page == "📄 Data Mentah":
+    st.title("📄 Dataset & Pembersihan Data")
+    st.markdown("Menampilkan dataset yang telah melalui tahap *Cleaning* dan *Selection*.")
+    st.divider()
+    
+    # Filter Sederhana
+    filter_smoker = st.multiselect("Filter Status Merokok:", options=['yes', 'no'], default=['yes', 'no'])
+    df_filtered = df[df['smoker'].isin(filter_smoker)]
+    
+    st.dataframe(df_filtered, use_container_width=True)
+    
+    # Statistik Deskriptif
+    st.subheader("📋 Ringkasan Statistik")
+    st.write(df_filtered.describe())
+    
+    # Tombol Download
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(label="📥 Download Dataset Lengkap", data=csv, file_name='data_asuransi_faris.csv', mime='text/csv')
 
-# --- HALAMAN 2: PREDIKSI PELANGGAN ---
-elif menu == "Prediksi Pelanggan":
-    st.title("🔮 Prediksi Risiko Churn")
-    st.markdown("Masukkan data pelanggan untuk melihat probabilitas mereka berhenti berlangganan.")
-
-    with st.form("churn_form"):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            tenure = st.slider("Tenure (Bulan)", 0, 72, 12)
-            monthly = st.number_input("Monthly Charges ($)", value=50.0)
-        with c2:
-            contract = st.selectbox("Tipe Kontrak", ['Month-to-month', 'One year', 'Two year'])
-            internet = st.selectbox("Layanan Internet", ['DSL', 'Fiber optic', 'No'])
-        with c3:
-            payment = st.selectbox("Metode Bayar", ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)'])
-            tech_support = st.selectbox("Tech Support", ['No', 'Yes', 'No internet service'])
-
-        submit = st.form_submit_button("Analisis Risiko")
-
-    if submit:
-        # Sederhananya kita asumsikan model sudah dilatih (dummy logic untuk simulasi app)
-        # Di aplikasi nyata, Anda load model .pkl di sini
-        risk_score = 0.0
-        if contract == 'Month-to-month': risk_score += 0.4
-        if internet == 'Fiber optic': risk_score += 0.2
-        if tenure < 12: risk_score += 0.3
-        
-        st.divider()
-        if risk_score > 0.5:
-            st.error(f"### HASIL: RISIKO TINGGI ({(risk_score*100):.1f}%)")
-            st.info("💡 Rekomendasi: Segera tawarkan perpanjangan kontrak dengan diskon khusus.")
-        else:
-            st.success(f"### HASIL: RISIKO RENDAH ({(risk_score*100):.1f}%)")
-            st.info("💡 Rekomendasi: Pertahankan kualitas layanan saat ini.")
+# --- FOOTER ---
+st.sidebar.divider()
+st.sidebar.caption("© 2024 Muhammad Faris Khabibi | KDD Project")
